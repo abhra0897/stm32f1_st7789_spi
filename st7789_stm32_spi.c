@@ -22,12 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <st7789_stm32_spi.h>
+#include "st7789_stm32_spi.h"
 
 //TFT width and height default global variables
-uint16_t ili_tftwidth = 320;
-uint16_t ili_tftheight = 240;
-
+uint16_t st_tftwidth = 240;
+uint16_t st_tftheight = 240;
 
 
 /**
@@ -38,10 +37,13 @@ uint16_t ili_tftheight = 240;
  * @param x2 end column address.
  * @param y2 end row address.
  */
-void ili_set_address_window(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
+void st_set_address_window(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 {
-	write_command_8bit(ILI_CASET);
+	write_command_8bit(ST7789_CASET);
 
+	#ifdef RELEASE_WHEN_IDLE
+		CS_ACTIVE;
+	#endif
 	DC_DAT;
 	WRITE_8BIT((uint8_t)(x1 >> 8));
 	WRITE_8BIT((uint8_t)x1);
@@ -49,23 +51,26 @@ void ili_set_address_window(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2)
 	WRITE_8BIT((uint8_t)x2);
 
 
-	write_command_8bit(ILI_PASET);
+	write_command_8bit(ST7789_RASET);
+	#ifdef RELEASE_WHEN_IDLE
+		CS_ACTIVE;
+	#endif
 	DC_DAT;
 	WRITE_8BIT((uint8_t)(y1 >> 8));
 	WRITE_8BIT((uint8_t)y1);
 	WRITE_8BIT((uint8_t)(y2 >> 8));
 	WRITE_8BIT((uint8_t)y2);
 
-	write_command_8bit(ILI_RAMWR);
+	write_command_8bit(ST7789_RAMWR);
 }
 
 
 
 /*
- * Rener a character glyph on the display. Called by `ili_draw_string_main()`
+ * Render a character glyph on the display. Called by `st_draw_string_main()`
  * User need NOT call it
  */
-void ili_draw_char(uint16_t x, uint16_t y, uint16_t fore_color, uint16_t back_color, const tImage *glyph, uint8_t is_bg)
+void st_draw_char(uint16_t x, uint16_t y, uint16_t fore_color, uint16_t back_color, const tImage *glyph, uint8_t is_bg)
 {
 	uint16_t width = 0, height = 0;
 
@@ -108,14 +113,14 @@ void ili_draw_char(uint16_t x, uint16_t y, uint16_t fore_color, uint16_t back_co
 				//Has background color (not transparent bg)
 				if (is_bg)
 				{
-					ili_draw_pixel(temp_x, temp_y, back_color);
+					st_draw_pixel(temp_x, temp_y, back_color);
 				}
 			}
 
 			//if pixel is not blank
 			else
 			{
-				ili_draw_pixel(temp_x, temp_y, fore_color);
+				st_draw_pixel(temp_x, temp_y, fore_color);
 			}
 
 			glyph_data <<= 1;
@@ -135,14 +140,14 @@ void ili_draw_char(uint16_t x, uint16_t y, uint16_t fore_color, uint16_t back_co
 
 /**
  * Renders a string by drawing each character glyph from the passed string.
- * Called by `ili_draw_string()` and `ili_draw_string_withbg()`.
+ * Called by `st_draw_string()` and `st_draw_string_withbg()`.
  * Text is wrapped automatically if it hits the screen boundary.
  * x_padding and y_padding defines horizontal and vertical distance (in px) between two characters
  * is_bg=1 : Text will habe background color,   is_bg=0 : Text will have transparent background
  * User need NOT call it.
  */
 
-void ili_draw_string_main(uint16_t x, uint16_t y, char *str, uint16_t fore_color, uint16_t back_color, tFont *font, uint8_t is_bg)
+void st_draw_string_main(uint16_t x, uint16_t y, char *str, uint16_t fore_color, uint16_t back_color, const tFont *font, uint8_t is_bg)
 {
 	uint16_t x_temp = x;
 	uint16_t y_temp = y;
@@ -179,9 +184,9 @@ void ili_draw_string_main(uint16_t x, uint16_t y, char *str, uint16_t fore_color
 			width = img->width;
 			height = img->height;
 
-			if(y_temp + (height + y_padding) > ili_tftheight - 1)	//not enough space available at the bottom
+			if(y_temp + (height + y_padding) > st_tftheight - 1)	//not enough space available at the bottom
 				return;
-			if (x_temp + (width + x_padding) > ili_tftwidth - 1)	//not enough space available at the right side
+			if (x_temp + (width + x_padding) > st_tftwidth - 1)	//not enough space available at the right side
 			{
 				x_temp = x;					//go to first col
 				y_temp += (height + y_padding);	//go to next row
@@ -189,9 +194,9 @@ void ili_draw_string_main(uint16_t x, uint16_t y, char *str, uint16_t fore_color
 
 
 			if (is_bg)
-				ili_draw_char(x_temp, y_temp, fore_color, back_color, img, 1);
+				st_draw_char(x_temp, y_temp, fore_color, back_color, img, 1);
 			else
-				ili_draw_char(x_temp, y_temp, fore_color, back_color, img, 0);
+				st_draw_char(x_temp, y_temp, fore_color, back_color, img, 0);
 			x_temp += (width + x_padding);		//next char position
 		}
 
@@ -210,9 +215,9 @@ void ili_draw_string_main(uint16_t x, uint16_t y, char *str, uint16_t fore_color
  * @param color 16-bit RGB565 color of the string
  * @param font Pointer to the font of the string
  */
-void ili_draw_string(uint16_t x, uint16_t y, char *str, uint16_t color, tFont *font)
+void st_draw_string(uint16_t x, uint16_t y, char *str, uint16_t color, const tFont *font)
 {
-	ili_draw_string_main(x, y, str, color, 0, font, 0);
+	st_draw_string_main(x, y, str, color, 0, font, 0);
 }
 
 
@@ -226,9 +231,9 @@ void ili_draw_string(uint16_t x, uint16_t y, char *str, uint16_t color, tFont *f
  * @param back_color 16-bit RGB565 color of the string's background
  * @param font Pointer to the font of the string
  */
-void ili_draw_string_withbg(uint16_t x, uint16_t y, char *str, uint16_t fore_color, uint16_t back_color, tFont *font)
+void st_draw_string_withbg(uint16_t x, uint16_t y, char *str, uint16_t fore_color, uint16_t back_color, const tFont *font)
 {
-	ili_draw_string_main(x, y, str, fore_color, back_color, font, 1);
+	st_draw_string_main(x, y, str, fore_color, back_color, font, 1);
 }
 
 
@@ -238,7 +243,7 @@ void ili_draw_string_withbg(uint16_t x, uint16_t y, char *str, uint16_t fore_col
  * @param y Start row address
  * @param bitmap Pointer to the image data to be drawn
  */
-// void ili_draw_bitmap_old(uint16_t x, uint16_t y, const tImage16bit *bitmap)
+// void st_draw_bitmap_old(uint16_t x, uint16_t y, const tImage16bit *bitmap)
 // {
 // 	uint16_t width = 0, height = 0;
 // 	width = bitmap->width;
@@ -246,7 +251,7 @@ void ili_draw_string_withbg(uint16_t x, uint16_t y, char *str, uint16_t fore_col
 
 // 	uint16_t total_pixels = width * height;
 
-// 	ili_set_address_window(x, y, x + width-1, y + height-1);
+// 	st_set_address_window(x, y, x + width-1, y + height-1);
 
 // 	DC_DAT;
 // 	for (uint16_t pixels = 0; pixels < total_pixels; pixels++)
@@ -256,7 +261,7 @@ void ili_draw_string_withbg(uint16_t x, uint16_t y, char *str, uint16_t fore_col
 // 	}
 // }
 
-void ili_draw_bitmap(uint16_t x, uint16_t y, const tImage *bitmap)
+void st_draw_bitmap(uint16_t x, uint16_t y, const tImage *bitmap)
 {
 	uint16_t width = 0, height = 0;
 	width = bitmap->width;
@@ -264,24 +269,30 @@ void ili_draw_bitmap(uint16_t x, uint16_t y, const tImage *bitmap)
 
 	uint16_t total_pixels = width * height;
 
-	ili_set_address_window(x, y, x + width-1, y + height-1);
+	st_set_address_window(x, y, x + width-1, y + height-1);
 
+	#ifdef RELEASE_WHEN_IDLE
+		CS_ACTIVE;
+	#endif
 	DC_DAT;
 	for (uint16_t pixels = 0; pixels < total_pixels; pixels++)
 	{
 		WRITE_8BIT((uint8_t)(bitmap->data[2*pixels]));
 		WRITE_8BIT((uint8_t)(bitmap->data[2*pixels + 1]));
 	}
+	#ifdef RELEASE_WHEN_IDLE
+		CS_IDLE;
+	#endif
 }
 
 
 /**
  * Fills `len` number of pixels with `color`.
- * Call ili_set_address_window() before calling this function.
+ * Call st_set_address_window() before calling this function.
  * @param color 16-bit RGB565 color value
  * @param len 32-bit number of pixels
  */
-void ili_fill_color(uint16_t color, uint32_t len)
+void st_fill_color(uint16_t color, uint32_t len)
 {
 	/*
 	* Here, macros are directly called (instead of inline functions) for performance increase
@@ -291,52 +302,32 @@ void ili_fill_color(uint16_t color, uint32_t len)
 	uint8_t color_high = color >> 8;
 	uint8_t color_low = color;
 
+	#ifdef RELEASE_WHEN_IDLE
+		CS_ACTIVE;
+	#endif
 	DC_DAT;
 	// Write first pixel
 	WRITE_8BIT(color_high); WRITE_8BIT(color_low);
 	len--;
 
-	// If higher byte and lower byte are identical,
-	// just strobe the WR pin to send the previous data
-	if(color_high == color_low)
+	while(blocks--)
 	{
-		while(blocks--)
+		pass_count = 16;
+		while(pass_count--)
 		{
-			// pass count = number of blocks / pixels per pass = 64 / 4
-			pass_count = 16;
-			while(pass_count--)
-			{
-				WR_STROBE; WR_STROBE; WR_STROBE; WR_STROBE; // 2
-				WR_STROBE; WR_STROBE; WR_STROBE; WR_STROBE; // 4
-			}
-		}
-		// Fill any remaining pixels (1 to 64)
-		pass_count = len & 63;
-		while (pass_count--)
-		{
-			WR_STROBE; WR_STROBE;
+			WRITE_8BIT(color_high); WRITE_8BIT(color_low); 	WRITE_8BIT(color_high); WRITE_8BIT(color_low); //2
+			WRITE_8BIT(color_high); WRITE_8BIT(color_low); 	WRITE_8BIT(color_high); WRITE_8BIT(color_low); //4
 		}
 	}
-
-	// If higher and lower bytes are different, send those bytes
-	else
+	pass_count = len & 63;
+	while (pass_count--)
 	{
-		while(blocks--)
-		{
-			pass_count = 16;
-			while(pass_count--)
-			{
-				WRITE_8BIT(color_high); WRITE_8BIT(color_low); 	WRITE_8BIT(color_high); WRITE_8BIT(color_low); //2
-				WRITE_8BIT(color_high); WRITE_8BIT(color_low); 	WRITE_8BIT(color_high); WRITE_8BIT(color_low); //4
-			}
-		}
-		pass_count = len & 63;
-		while (pass_count--)
-		{
-			// write here the remaining data
-			WRITE_8BIT(color_high); WRITE_8BIT(color_low);
-		}
+		// write here the remaining data
+		WRITE_8BIT(color_high); WRITE_8BIT(color_low);
 	}
+	#ifdef RELEASE_WHEN_IDLE
+		CS_IDLE;
+	#endif
 }
 
 
@@ -349,27 +340,27 @@ void ili_fill_color(uint16_t color, uint32_t len)
  * @param h Height of rectangle
  * @param color 16-bit RGB565 color
  */
-void ili_fill_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
+void st_fill_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
 {
-	if (x >= ili_tftwidth || y >= ili_tftheight || w == 0 || h == 0)
+	if (x >= st_tftwidth || y >= st_tftheight || w == 0 || h == 0)
 		return;
-	if (x + w - 1 >= ili_tftwidth)
-		w = ili_tftwidth - x;
-	if (y + h - 1 >= ili_tftheight)
-		h = ili_tftheight - y;
+	if (x + w - 1 >= st_tftwidth)
+		w = st_tftwidth - x;
+	if (y + h - 1 >= st_tftheight)
+		h = st_tftheight - y;
 
-	ili_set_address_window(x, y, x + w - 1, y + h - 1);
-	ili_fill_color(color, (uint32_t)w * (uint32_t)h);
+	st_set_address_window(x, y, x + w - 1, y + h - 1);
+	st_fill_color(color, (uint32_t)w * (uint32_t)h);
 }
 
 
 /*
- * Same as `ili_fill_rect()` but does not do bound checking, so it's slightly faster
+ * Same as `st_fill_rect()` but does not do bound checking, so it's slightly faster
  */
-void ili_fill_rect_fast(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color)
+void st_fill_rect_fast(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16_t color)
 {
-	ili_set_address_window(x1, y1, x1 + w - 1, y1 + h - 1);
-	ili_fill_color(color, (uint32_t)w * (uint32_t)h);
+	st_set_address_window(x1, y1, x1 + w - 1, y1 + h - 1);
+	st_fill_color(color, (uint32_t)w * (uint32_t)h);
 }
 
 
@@ -377,36 +368,36 @@ void ili_fill_rect_fast(uint16_t x1, uint16_t y1, uint16_t w, uint16_t h, uint16
  * Fill the entire display (screen) with `color`
  * @param color 16-bit RGB565 color
  */
-void ili_fill_screen(uint16_t color)
+void st_fill_screen(uint16_t color)
 {
-	ili_set_address_window(0, 0, ili_tftwidth - 1, ili_tftheight - 1);
-	ili_fill_color(color, (uint32_t)ili_tftwidth * (uint32_t)ili_tftheight);
+	st_set_address_window(0, 0, st_tftwidth - 1, st_tftheight - 1);
+	st_fill_color(color, (uint32_t)st_tftwidth * (uint32_t)st_tftheight);
 }
 
 
 /**
  * Draw a rectangle
 */
-void ili_draw_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
+void st_draw_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color)
 {
 	// Perform bound checking
-	if (x >= ili_tftwidth || y >= ili_tftheight || w == 0 || h == 0)
+	if (x >= st_tftwidth || y >= st_tftheight || w == 0 || h == 0)
 		return;
-	if (x + w - 1 >= ili_tftwidth)
-		w = ili_tftwidth - x;
-	if (y + h - 1 >= ili_tftheight)
-		h = ili_tftheight - y;
+	if (x + w - 1 >= st_tftwidth)
+		w = st_tftwidth - x;
+	if (y + h - 1 >= st_tftheight)
+		h = st_tftheight - y;
 
-	ili_draw_fast_h_line(x, y, x+w-1, y-1, 1, color);
-	ili_draw_fast_h_line(x, y+h, x+w-1, y+h-1, 1, color);
-	ili_draw_fast_v_line(x, y, x-1, y+h-1, 1, color);
-	ili_draw_fast_v_line(x+w, y, x+w-1, y+h-1, 1, color);
-	 
+	st_draw_fast_h_line(x, y, x+w-1, 1, color);
+	st_draw_fast_h_line(x, y+h, x+w-1, 1, color);
+	st_draw_fast_v_line(x, y, y+h-1, 1, color);
+	st_draw_fast_v_line(x+w, y, y+h-1, 1, color);
+
 
 }
 
 /*
- * Called by ili_draw_line().
+ * Called by st_draw_line().
  * User need not call it
  */
 void plot_line_low(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color)
@@ -429,15 +420,22 @@ void plot_line_low(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t w
 
 	while (x <= x1)
 	{
-		ili_set_address_window(x, y, x+width-1, y+width-1);
+		st_set_address_window(x, y, x+width-1, y+width-1);
 		//Drawing all the pixels of a single point
 
+		#ifdef RELEASE_WHEN_IDLE
+			CS_ACTIVE;
+		#endif
 		DC_DAT;
 		for (uint8_t pixel_cnt = 0; pixel_cnt < pixels_per_point; pixel_cnt++)
 		{
 			WRITE_8BIT(color_high);
 			WRITE_8BIT(color_low);
 		}
+		#ifdef RELEASE_WHEN_IDLE
+			CS_IDLE;
+		#endif
+
 		if (D > 0)
 		{
 			y = y + yi;
@@ -450,7 +448,7 @@ void plot_line_low(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t w
 
 
 /*
- * Called by ili_draw_line().
+ * Called by st_draw_line().
  * User need not call it
  */
 void plot_line_high(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color)
@@ -474,15 +472,22 @@ void plot_line_high(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t 
 
 	while (y <= y1)
 	{
-		ili_set_address_window(x, y, x+width-1, y+width-1);
+		st_set_address_window(x, y, x+width-1, y+width-1);
 		//Drawing all the pixels of a single point
 
+		#ifdef RELEASE_WHEN_IDLE
+			CS_ACTIVE;
+		#endif
 		DC_DAT;
 		for (uint8_t pixel_cnt = 0; pixel_cnt < pixels_per_point; pixel_cnt++)
 		{
 			WRITE_8BIT(color_high);
 			WRITE_8BIT(color_low);
 		}
+		#ifdef RELEASE_WHEN_IDLE
+			CS_IDLE;
+		#endif
+
 		if (D > 0)
 		{
 			x = x + xi;
@@ -503,7 +508,7 @@ void plot_line_high(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t 
  * @param width width or thickness of the line
  * @param color 16-bit RGB565 color of the line
  */
-void ili_draw_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color)
+void st_draw_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color)
 {
 	/*
 	* Brehensen's algorithm is used.
@@ -512,11 +517,11 @@ void ili_draw_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t w
 
 	if (x0 == x1)	//vertical line
 	{
-		ili_draw_fast_v_line(x0, y0, x1, y1, width, color);
+		st_draw_fast_v_line(x0, y0, y1, width, color);
 	}
 	else if (y0 == y1)		//horizontal line
 	{
-		ili_draw_fast_h_line(x0, y0, x1, y1, width, color);
+		st_draw_fast_h_line(x0, y0, x1, width, color);
 	}
 
 	else
@@ -542,32 +547,32 @@ void ili_draw_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t w
 
 
 /*
- * Called by ili_draw_line().
+ * Called by st_draw_line().
  * User need not call it
  */
-void ili_draw_fast_h_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color)
+void st_draw_fast_h_line(uint16_t x0, uint16_t y0, uint16_t x1, uint8_t width, uint16_t color)
 {
 	/*
 	* Draw a horizontal line very fast
 	*/
 
-	ili_set_address_window(x0, y0, x1, y0+width-1);	//as it's horizontal line, y1=y0.. must be.
-	ili_fill_color(color, (uint32_t)width * (uint32_t)abs(x1 - x0 + 1));
+	st_set_address_window(x0, y0, x1, y0+width-1);	//as it's horizontal line, y1=y0.. must be.
+	st_fill_color(color, (uint32_t)width * (uint32_t)abs(x1 - x0 + 1));
 }
 
 
 /*
- * Called by ili_draw_line().
+ * Called by st_draw_line().
  * User need not call it
  */
-void ili_draw_fast_v_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color)
+void st_draw_fast_v_line(uint16_t x0, uint16_t y0, uint16_t y1, uint8_t width, uint16_t color)
 {
 	/*
 	* Draw a vertical line very fast
 	*/
 
-	ili_set_address_window(x0, y0, x0+width-1, y1);	//as it's vertical line, x1=x0.. must be.
-	ili_fill_color(color, (uint32_t)width * (uint32_t)abs(y1 - y0 + 1));
+	st_set_address_window(x0, y0, x0+width-1, y1);	//as it's vertical line, x1=x0.. must be.
+	st_fill_color(color, (uint32_t)width * (uint32_t)abs(y1 - y0 + 1));
 }
 
 
@@ -576,17 +581,23 @@ void ili_draw_fast_v_line(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, ui
  * @param x Start col address
  * @param y Start row address
  */
-void ili_draw_pixel(uint16_t x, uint16_t y, uint16_t color)
+void st_draw_pixel(uint16_t x, uint16_t y, uint16_t color)
 {
 	/*
 	* Why?: This function is mainly added in the driver so that  ui libraries can use it.
 	* example: LittlevGL requires user to supply a function that can draw pixel
 	*/
 
-	ili_set_address_window(x, y, x, y);
+	st_set_address_window(x, y, x, y);
+	#ifdef RELEASE_WHEN_IDLE
+		CS_ACTIVE;
+	#endif
 	DC_DAT;
 	WRITE_8BIT((uint8_t)(color >> 8));
 	WRITE_8BIT((uint8_t)color);
+	#ifdef RELEASE_WHEN_IDLE
+		CS_IDLE;
+	#endif
 }
 
 
@@ -595,7 +606,7 @@ void ili_draw_pixel(uint16_t x, uint16_t y, uint16_t color)
  * Rotate the display clockwise or anti-clockwie set by `rotation`
  * @param rotation Type of rotation. Supported values 0, 1, 2, 3
  */
-void ili_rotate_display(uint8_t rotation)
+void st_rotate_display(uint8_t rotation)
 {
 	/*
 	* 	(uint8_t)rotation :	Rotation Type
@@ -604,31 +615,31 @@ void ili_rotate_display(uint8_t rotation)
 	* 					2 : Landscape 2
 	* 					3 : Potrait 2
 	*/
+	// Set max rotation value to 4
+	rotation = rotation % 4;
+	write_command_8bit(ST7789_MADCTL);		//Memory Access Control
 	switch (rotation)
-	{
+	{		
 		case 0:
-			write_command_8bit(ILI_MADCTL);		//Memory Access Control
-			write_data_8bit(0x40);				//MX: 1, MY: 0, MV: 0	(Landscape 1. Default)
-			ili_tftheight = 240;
-			ili_tftwidth = 320;
+			
+			write_data_8bit(ST7789_MADCTL_RGB);	// Default
+			st_tftheight = 240;
+			st_tftwidth = 240;
 			break;
 		case 1:
-			write_command_8bit(ILI_MADCTL);		//Memory Access Control
-			write_data_8bit(0x20);				//MX: 0, MY: 0, MV: 1	(Potrait 1)
-			ili_tftheight = 320;
-			ili_tftwidth = 240;
+			write_data_8bit(ST7789_MADCTL_MX | ST7789_MADCTL_MY | ST7789_MADCTL_RGB);
+			st_tftheight = 240;
+			st_tftwidth = 240;
 			break;
 		case 2:
-			write_command_8bit(ILI_MADCTL);		//Memory Access Control
-			write_data_8bit(0x80);				//MX: 0, MY: 1, MV: 0	(Landscape 2)
-			ili_tftheight = 240;
-			ili_tftwidth = 320;
+			write_data_8bit(ST7789_MADCTL_MY | ST7789_MADCTL_MV | ST7789_MADCTL_RGB);
+			st_tftheight = 240;
+			st_tftwidth = 240;
 			break;
 		case 3:
-			write_command_8bit(ILI_MADCTL);		//Memory Access Control
-			write_data_8bit(0xE0);				//MX: 1, MY: 1, MV: 1	(Potrait 2)
-			ili_tftheight = 320;
-			ili_tftwidth = 240;
+			write_data_8bit(ST7789_MADCTL_MX | ST7789_MADCTL_MV | ST7789_MADCTL_RGB);
+			st_tftheight = 240;
+			st_tftwidth = 240;
 			break;
 	}
 }
@@ -637,128 +648,53 @@ void ili_rotate_display(uint8_t rotation)
 /**
  * Initialize the display driver
  */
-void ili_init()
+void st_init()
 {
 	// Set gpio clock
 	CONFIG_GPIO_CLOCK();
 	// Configure gpio output dir and mode
 	CONFIG_GPIO();
+	// Configure SPI settings
+	CONFIG_SPI();
 
+	#ifdef HAS_CS
+		CS_ACTIVE;
+	#endif
+	// Hardwae reset is not mandatory if software rest is done
+	//RST_IDLE;
+	//delay(50);
+	//RST_ACTIVE;
+	//delay(50);
+	//RST_IDLE;
+	//delay(50);
 
-	RST_IDLE;
-	RST_ACTIVE;
-	RST_IDLE;
-	
-	// Approx 10ms delay at 128MHz clock
-	for (uint32_t i = 0; i < 2000000; i++)
-		__asm__("nop");
+	write_command_8bit(ST7789_SWRESET);	//1: Software reset, no args, w/delay: delay(150)
+	st_fixed_delay();
 
-	write_command_8bit(0xEF);
-	write_data_8bit(0x03);
-	write_data_8bit(0x80);
-	write_data_8bit(0x02);
+	write_command_8bit(ST7789_SLPOUT);	// 2: Out of sleep mode, no args, w/delay: delay(500)
+	st_fixed_delay();
 
-	write_command_8bit(0xCF);
-	write_data_8bit(0x00);
-	write_data_8bit(0XC1);
-	write_data_8bit(0X30);
+	write_command_8bit(ST7789_COLMOD);	// 3: Set color mode, 1 arg, delay: delay(10)
+	write_data_8bit(ST7789_COLOR_MODE_65K | ST7789_COLOR_MODE_16BIT);	// 65K color, 16-bit color
+	st_fixed_delay();
 
-	write_command_8bit(0xED);
-	write_data_8bit(0x64);
-	write_data_8bit(0x03);
-	write_data_8bit(0X12);
-	write_data_8bit(0X81);
+	write_command_8bit(ST7789_MADCTL);	// 4: Memory access ctrl (directions), 1 arg:
+	write_data_8bit(ST7789_MADCTL_RGB);	// RGB Color
 
-	write_command_8bit(0xE8);
-	write_data_8bit(0x85);
-	write_data_8bit(0x00);
-	write_data_8bit(0x78);
+	write_command_8bit(ST7789_INVON);	// 5: Inversion ON (but why?) delay(10)
+	st_fixed_delay();
 
-	write_command_8bit(0xCB);
-	write_data_8bit(0x39);
-	write_data_8bit(0x2C);
-	write_data_8bit(0x00);
-	write_data_8bit(0x34);
-	write_data_8bit(0x02);
+	write_command_8bit(ST7789_NORON);	// 6: Normal display on, no args, w/delay: delay(10)
+	st_fixed_delay();
 
-	write_command_8bit(0xF7);
-	write_data_8bit(0x20);
-
-	write_command_8bit(0xEA);
-	write_data_8bit(0x00);
-	write_data_8bit(0x00);
-
-	write_command_8bit(ILI_PWCTR1);    //Power control
-	write_data_8bit(0x23);   //VRH[5:0]
-
-	write_command_8bit(ILI_PWCTR2);    //Power control
-	write_data_8bit(0x10);   //SAP[2:0];BT[3:0]
-
-	write_command_8bit(ILI_VMCTR1);    //VCM control
-	write_data_8bit(0x3e);
-	write_data_8bit(0x28);
-
-	write_command_8bit(ILI_VMCTR2);    //VCM control2
-	write_data_8bit(0x86);  //--
-
-	write_command_8bit(ILI_MADCTL);    // Memory Access Control
-	write_data_8bit(0x40); // Rotation 0 (landscape mode)
-
-	write_command_8bit(ILI_PIXFMT);
-	write_data_8bit(0x55);
-
-	write_command_8bit(ILI_FRMCTR1);
-	write_data_8bit(0x00);
-	write_data_8bit(0x13); // 0x18 79Hz, 0x1B default 70Hz, 0x13 100Hz
-
-	write_command_8bit(ILI_DFUNCTR);    // Display Function Control
-	write_data_8bit(0x08);
-	write_data_8bit(0x82);
-	write_data_8bit(0x27);
-
-	write_command_8bit(0xF2);    // 3Gamma Function Disable
-	write_data_8bit(0x00);
-
-	write_command_8bit(ILI_GAMMASET);    //Gamma curve selected
-	write_data_8bit(0x01);
-
-	write_command_8bit(ILI_GMCTRP1);    //Set Gamma
-	write_data_8bit(0x0F);
-	write_data_8bit(0x31);
-	write_data_8bit(0x2B);
-	write_data_8bit(0x0C);
-	write_data_8bit(0x0E);
-	write_data_8bit(0x08);
-	write_data_8bit(0x4E);
-	write_data_8bit(0xF1);
-	write_data_8bit(0x37);
-	write_data_8bit(0x07);
-	write_data_8bit(0x10);
-	write_data_8bit(0x03);
-	write_data_8bit(0x0E);
-	write_data_8bit(0x09);
-	write_data_8bit(0x00);
-
-	write_command_8bit(ILI_GMCTRN1);    //Set Gamma
-	write_data_8bit(0x00);
-	write_data_8bit(0x0E);
-	write_data_8bit(0x14);
-	write_data_8bit(0x03);
-	write_data_8bit(0x11);
-	write_data_8bit(0x07);
-	write_data_8bit(0x31);
-	write_data_8bit(0xC1);
-	write_data_8bit(0x48);
-	write_data_8bit(0x08);
-	write_data_8bit(0x0F);
-	write_data_8bit(0x0C);
-	write_data_8bit(0x31);
-	write_data_8bit(0x36);
-	write_data_8bit(0x0F);
-
-	write_command_8bit(ILI_SLPOUT);    //Exit Sleep
-	//delay 150ms if display output is inaccurate
-
-	write_command_8bit(ILI_DISPON);    //Display on
-	//delay 150ms if display output is inaccurate
+	write_command_8bit(ST7789_DISPON);	// 7: Main screen turn on, no args, w/delay: delay(500)
+	st_fixed_delay();
 }
+
+
+void st_fixed_delay()
+{
+	for (uint32_t i = 0; i < 50000; i++)
+		__asm__("nop");
+}
+
