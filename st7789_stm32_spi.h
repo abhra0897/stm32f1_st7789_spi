@@ -125,6 +125,7 @@ SOFTWARE.
  * BLK					PA3
  */
 
+#define HAS_RST
 //#define HAS_CS
 #ifdef HAS_CS
 //	#define RELEASE_WHEN_IDLE
@@ -181,6 +182,8 @@ SOFTWARE.
 #define CONFIG_SPI()			{ \
 									/* Reset SPI, SPI_CR1 register cleared, SPI is disabled */ \
 									spi_reset(ST_SPI); \
+									/* Must use SPI_MODE = 2. (CPOL 1, CPHA 0) */\
+									/* Read about SPI MODEs: https://en.wikipedia.org/wiki/Serial_Peripheral_Interface*/ \
 									spi_init_master(ST_SPI, SPI_CR1_BAUDRATE_FPCLK_DIV_2, SPI_CR1_CPOL_CLK_TO_1_WHEN_IDLE, SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST); \
 									spi_enable_software_slave_management(ST_SPI); \
 									spi_set_nss_high(ST_SPI); \
@@ -191,23 +194,21 @@ SOFTWARE.
 
 #define SWAP(a, b)		{uint16_t temp; temp = a; a = b; b = temp;}
 
-/*#define WRITE_8BIT(d)	{ \
-			    while (!(SPI_SR(ST_SPI) & SPI_SR_TXE)); \
-			    SPI_DR(ST_SPI) = (uint8_t)(d); \
-			} \
-*/
 
-__attribute__((always_inline)) static void WRITE_8BIT(uint8_t d)
-{
-	while (!(SPI_SR(ST_SPI) & SPI_SR_TXE));
-	SPI_DR(ST_SPI) = d;
-}
+// Important: using `while (!(SPI_SR(ST_SPI) & SPI_SR_TXE));` is
+// making the transmission unstable. So, replaced it with 
+// `while (SPI_SR(ST_SPI) & SPI_SR_BSY);`
+#define WRITE_8BIT(d)	do{ \
+							SPI_DR(ST_SPI) = (uint8_t)(d); \
+							while (SPI_SR(ST_SPI) & SPI_SR_BSY); \
+						} while(0)
+
 
 /*
- * function to send 8 bit command to the display
+ * inline function to send 8 bit command to the display
  * User need not call it
  */
-static void write_command_8bit(uint8_t cmd)
+__attribute__((always_inline)) static void write_command_8bit(uint8_t cmd)
 {
 	#ifdef RELEASE_WHEN_IDLE
 		CS_ACTIVE;
@@ -220,10 +221,10 @@ static void write_command_8bit(uint8_t cmd)
 }
 
 /*
- * function to send 8 bit data to the display
+ * inline function to send 8 bit data to the display
  * User need not call it
  */
-static void write_data_8bit(uint8_t dat)
+__attribute__((always_inline)) static void write_data_8bit(uint8_t dat)
 {
 	#ifdef RELEASE_WHEN_IDLE
 		CS_ACTIVE;
@@ -236,10 +237,10 @@ static void write_data_8bit(uint8_t dat)
 }
 
 /*
- * function to send 16 bit data to the display
+ * inline function to send 16 bit data to the display
  * User need not call it
  */
-static void write_data_16bit(uint16_t dat)
+__attribute__((always_inline)) static void write_data_16bit(uint16_t dat)
 {
 	#ifdef RELEASE_WHEN_IDLE
 		CS_ACTIVE;
@@ -256,6 +257,10 @@ static void write_data_16bit(uint16_t dat)
 * function prototypes
 */
 
+/**
+ * fixed delay of 5000 NOPs + time due to looping.
+ * Used for sendinf start sequence
+ */
 void st_fixed_delay();
 
 /**

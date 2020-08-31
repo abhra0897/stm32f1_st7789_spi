@@ -49,9 +49,11 @@ Connections between STM32F1 and ST7789 parallel display. **The display has no CS
 
 ### Configuration
 All configuration options are in the [header file](st7789_stm32_spi.h). 
+- If display has no RESET pin, comment out `#define HAS_RST`.
 - To use CS pin, uncomment `#define HAS_CS`
 - If using CS and there's no other device connected in the same SPI bus, uncomment `#define RELEASE_WHEN_IDLE` to get a bit extra speed.
 - Here `SPI1` is used, but can be changed from the header.
+- Compiling with `-O1` flag gives almost twice as speed. But may reduce stability slightly. `-O0` flag is the most stable one and other optimization levels don't work.
 
 ### Example
 Example code (**[main.c](example/main.c)**) is in **[example](example)** directory. To compile using the provided [Makefile](example/Makefile), keep the directory structure as it is. If you change the directory structure, edit the SRCS, INCLS, and LIBS in the Makefile accordingly.

@@ -660,13 +660,14 @@ void st_init()
 	#ifdef HAS_CS
 		CS_ACTIVE;
 	#endif
+
 	// Hardwae reset is not mandatory if software rest is done
-	//RST_IDLE;
-	//delay(50);
-	//RST_ACTIVE;
-	//delay(50);
-	//RST_IDLE;
-	//delay(50);
+	#ifdef HAS_RST
+		RST_ACTIVE;
+		st_fixed_delay();
+		RST_IDLE;
+		st_fixed_delay();
+	#endif
 
 	write_command_8bit(ST7789_SWRESET);	//1: Software reset, no args, w/delay: delay(150)
 	st_fixed_delay();
@@ -694,7 +695,7 @@ void st_init()
 
 void st_fixed_delay()
 {
-	for (uint32_t i = 0; i < 50000; i++)
+	for (uint16_t i = 0; i < 5000; i++)
 		__asm__("nop");
 }
 
