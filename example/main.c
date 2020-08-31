@@ -82,7 +82,7 @@ int main(void)
 	// Set an area on the display to be drawn
 	st_set_address_window(50, 150, 150, 230);
 	// Now fill the area many times quickly
-	for (uint16_t i = 0; i < 6000; i++)
+	for (uint16_t i = 0; i < 300; i++)
 		st_fill_color(COLOR_MAROON + i, (100+1) * (150+1));
 
 
