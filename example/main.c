@@ -25,11 +25,12 @@ SOFTWARE.
 #include <stdlib.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/flash.h>
-#include "font_microsoft_16.h"
+//#include "font_microsoft_16.h"
+#include "font_ubuntu_mono_24.h"
 #include "st7789_stm32_spi.h"
 
 /**
- * Configure RCC registers for 8MHz HSE and 128MHz output.
+ * Configure RCC registers for 8MHz HSE and 80MHz output.
  * I'm using STM32F103 which supports maximum 72 MHz, so I'm overclocking it
  */
 void rcc_clock_setup_in_hse_8mhz_out_custom(void);
@@ -63,10 +64,10 @@ int main(void)
 	st_draw_rectangle(5, 160, 50, 50, COLOR_BLACK);
 
 	// Write a string with transparent background at (0, 0) position with font `font_microsoft_16`
-	st_draw_string(0, 0, "Hello world", 0, &font_microsoft_16);
+	st_draw_string(0, 0, "Hello world", 0, &font_ubuntu_mono_24);
 
 	// Write a string with solid background. Text color white, background color dark green
-	st_draw_string_withbg(10, 40, "Hello Solid World", COLOR_WHITE, COLOR_DARKGREEN, &font_microsoft_16);
+	st_draw_string_withbg(10, 40, "Hello Solid World", COLOR_WHITE, COLOR_DARKGREEN, &font_ubuntu_mono_24);
 
 	// Draw a line between any two points
 	st_draw_line(4, 18, 200, 150, 1, COLOR_RED);
