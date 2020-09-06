@@ -61,6 +61,9 @@ Example is compiled and tested on STM32F103 (overclocked to 80MHz).
 
 ![Output of example code](example/photo/example_output.gif)
 
+### Making Fonts
+To know how to make more fonts as per your need, check my [fonts_embedded](https://github.com/abhra0897/fonts_embedded.git) repository.
+
 ### Important API Methods
 
 ```C
@@ -179,7 +182,7 @@ void st_draw_pixel(uint16_t x, uint16_t y, uint16_t color);
 
  - [x] Add example code(s) and write some docs
  - [x] Write better comments
- - [ ] Explain how to create fonts
+ - [x] Explain how to create fonts
  - [ ] Add DMA transfer capability
 
 ### License
