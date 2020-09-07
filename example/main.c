@@ -66,6 +66,10 @@ int main(void)
 	// Write a string with transparent background at (0, 0) position with font `font_microsoft_16`
 	st_draw_string(0, 0, "Hello world", 0, &font_ubuntu_mono_24);
 
+	// Write a few characters at different positions
+	for (int i = 0; i < 10; i++)
+		st_draw_char(rand() % 100 + 5, rand() % 100 + 60, (char)(rand() % 50 + 90), COLOR_RED, 0, &font_ubuntu_mono_24, 0);
+
 	// Write a string with solid background. Text color white, background color dark green
 	st_draw_string_withbg(10, 40, "Hello Solid World", COLOR_WHITE, COLOR_DARKGREEN, &font_ubuntu_mono_24);
 
