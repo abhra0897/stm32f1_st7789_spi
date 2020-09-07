@@ -140,6 +140,18 @@ void st_fill_screen(uint16_t color);
 void st_draw_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
 
 /**
+ * Draws a character at a given position, fore color, back color.
+ * @param x Start col address
+ * @param y Start row address
+ * @param character the ASCII character to be drawn
+ * @param fore_color foreground color
+ * @param back_color background color
+ * @param font Pointer to the font of the character
+ * @param is_bg Defines if character has background or not (transparent)
+ */
+void st_draw_char(uint16_t x, uint16_t y, char character, uint16_t fore_color, uint16_t back_color, const tFont *font, uint8_t is_bg)
+
+/**
  * Draws a string on the display with `font` and `color` at given position.
  * Background of this string is transparent
  * @param x Start col address
