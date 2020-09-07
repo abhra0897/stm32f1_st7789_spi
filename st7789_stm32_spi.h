@@ -84,34 +84,34 @@ SOFTWARE.
 
 // Color definitions
 
-#define	R_POS_RGB   11	// Red last bit position for RGB display
-#define	G_POS_RGB   5 	// Green last bit position for RGB display
-#define	B_POS_RGB   0	// Blue last bit position for RGB display
+#define	ST_R_POS_RGB   11	// Red last bit position for RGB display
+#define	ST_G_POS_RGB   5 	// Green last bit position for RGB display
+#define	ST_B_POS_RGB   0	// Blue last bit position for RGB display
 
-#define	RGB(R,G,B) \
-	(((uint16_t)(R >> 3) << R_POS_RGB) | \
-	((uint16_t)(G >> 2) << G_POS_RGB) | \
-	((uint16_t)(B >> 3) << B_POS_RGB))
+#define	ST_RGB(R,G,B) \
+	(((uint16_t)(R >> 3) << ST_R_POS_RGB) | \
+	((uint16_t)(G >> 2) << ST_G_POS_RGB) | \
+	((uint16_t)(B >> 3) << ST_B_POS_RGB))
 
-#define COLOR_BLACK       RGB(0,     0,   0)
-#define COLOR_NAVY        RGB(0,     0, 123)
-#define COLOR_DARKGREEN   RGB(0,   125,   0)
-#define COLOR_DARKCYAN    RGB(0,   125, 123)
-#define COLOR_MAROON      RGB(123,   0,   0)
-#define COLOR_PURPLE      RGB(123,   0, 123)
-#define COLOR_OLIVE       RGB(123, 125,   0)
-#define COLOR_LIGHTGREY   RGB(198, 195, 198)
-#define COLOR_DARKGREY    RGB(123, 125, 123)
-#define COLOR_BLUE        RGB(0,     0, 255)
-#define COLOR_GREEN       RGB(0,   255,   0)
-#define COLOR_CYAN        RGB(0,   255, 255)
-#define COLOR_RED         RGB(255,   0,   0)
-#define COLOR_MAGENTA     RGB(255,   0, 255)
-#define COLOR_YELLOW      RGB(255, 255,   0)
-#define COLOR_WHITE       RGB(255, 255, 255)
-#define COLOR_ORANGE      RGB(255, 165,   0)
-#define COLOR_GREENYELLOW RGB(173, 255,  41)
-#define COLOR_PINK        RGB(255, 130, 198)
+#define COLOR_BLACK       ST_RGB(0,     0,   0)
+#define COLOR_NAVY        ST_RGB(0,     0, 123)
+#define COLOR_DARKGREEN   ST_RGB(0,   125,   0)
+#define COLOR_DARKCYAN    ST_RGB(0,   125, 123)
+#define COLOR_MAROON      ST_RGB(123,   0,   0)
+#define COLOR_PURPLE      ST_RGB(123,   0, 123)
+#define COLOR_OLIVE       ST_RGB(123, 125,   0)
+#define COLOR_LIGHTGREY   ST_RGB(198, 195, 198)
+#define COLOR_DARKGREY    ST_RGB(123, 125, 123)
+#define COLOR_BLUE        ST_RGB(0,     0, 255)
+#define COLOR_GREEN       ST_RGB(0,   255,   0)
+#define COLOR_CYAN        ST_RGB(0,   255, 255)
+#define COLOR_RED         ST_RGB(255,   0,   0)
+#define COLOR_MAGENTA     ST_RGB(255,   0, 255)
+#define COLOR_YELLOW      ST_RGB(255, 255,   0)
+#define COLOR_WHITE       ST_RGB(255, 255, 255)
+#define COLOR_ORANGE      ST_RGB(255, 165,   0)
+#define COLOR_GREENYELLOW ST_RGB(173, 255,  41)
+#define COLOR_PINK        ST_RGB(255, 130, 198)
 
 
 /**
@@ -125,10 +125,10 @@ SOFTWARE.
  * BLK					PA3
  */
 
-#define HAS_RST
-//#define HAS_CS
-#ifdef HAS_CS
-//	#define RELEASE_WHEN_IDLE
+#define ST_HAS_RST
+#define ST_HAS_CS
+#ifdef ST_HAS_CS
+//	#define ST_RELEASE_WHEN_IDLE
 #endif
 
 #define ST_SPI			SPI1
@@ -143,22 +143,22 @@ SOFTWARE.
 #define ST_CS			GPIO6
 
 
-#define DC_CMD			GPIO_BRR(ST_PORT) = ST_DC
-#define DC_DAT			GPIO_BSRR(ST_PORT) = ST_DC
-#define RST_ACTIVE		GPIO_BRR(ST_PORT) = ST_RST
-#define RST_IDLE		GPIO_BSRR(ST_PORT) = ST_RST
-#ifdef HAS_CS
-	CS_ACTIVE				GPIO_BRR(ST_PORT) = ST_CS
-	CS_IDLE					GPIO_BSRR(ST_PORT) = ST_CS
+#define ST_DC_CMD			GPIO_BRR(ST_PORT) = ST_DC
+#define ST_DC_DAT			GPIO_BSRR(ST_PORT) = ST_DC
+#define ST_RST_ACTIVE		GPIO_BRR(ST_PORT) = ST_RST
+#define ST_RST_IDLE			GPIO_BSRR(ST_PORT) = ST_RST
+#ifdef ST_HAS_CS
+	#define ST_CS_ACTIVE		GPIO_BRR(ST_PORT) = ST_CS
+	#define ST_CS_IDLE			GPIO_BSRR(ST_PORT) = ST_CS
 #endif
 
-#define CONFIG_GPIO_CLOCK()	    { \
+#define ST_CONFIG_GPIO_CLOCK()	    { \
 									rcc_periph_clock_enable(RCC_GPIOA); \
 									rcc_periph_clock_enable(RCC_AFIO); \
 									rcc_periph_clock_enable(RCC_SPI1); \
 								}
-#ifdef HAS_CS
-	#define CONFIG_GPIO()			{ \
+#ifdef ST_HAS_CS
+	#define ST_CONFIG_GPIO()			{ \
 										/*Configure GPIO pins : PA2 PA3 PA4 PA5 PA7 */ \
 										gpio_set_mode(ST_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, ST_SCL|ST_SDA); \
 										gpio_set_mode(ST_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, ST_DC|ST_BLK|ST_RST|ST_CS); \
@@ -168,7 +168,7 @@ SOFTWARE.
 										AFIO_MAPR |= AFIO_MAPR_SWJ_CFG_FULL_SWJ_NO_JNTRST; \
 									}
 #else
-	#define CONFIG_GPIO()			{ \
+	#define ST_CONFIG_GPIO()			{ \
 										/*Configure GPIO pins : PA2 PA3 PA4 PA5 PA7 */ \
 										gpio_set_mode(ST_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, ST_SCL|ST_SDA); \
 										gpio_set_mode(ST_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, ST_DC|ST_BLK|ST_RST); \
@@ -179,7 +179,7 @@ SOFTWARE.
 									}
 #endif
 
-#define CONFIG_SPI()			{ \
+#define ST_CONFIG_SPI()			{ \
 									/* Reset SPI, SPI_CR1 register cleared, SPI is disabled */ \
 									spi_reset(ST_SPI); \
 									/* Must use SPI_MODE = 2. (CPOL 1, CPHA 0) */\
@@ -192,13 +192,13 @@ SOFTWARE.
 								}
 
 
-#define SWAP(a, b)		{uint16_t temp; temp = a; a = b; b = temp;}
+#define ST_SWAP(a, b)		{uint16_t temp; temp = a; a = b; b = temp;}
 
 
 // Important: using `while (!(SPI_SR(ST_SPI) & SPI_SR_TXE));` is
 // making the transmission unstable. So, replaced it with 
 // `while (SPI_SR(ST_SPI) & SPI_SR_BSY);`
-#define WRITE_8BIT(d)	do{ \
+#define ST_WRITE_8BIT(d)	do{ \
 							SPI_DR(ST_SPI) = (uint8_t)(d); \
 							while (SPI_SR(ST_SPI) & SPI_SR_BSY); \
 						} while(0)
@@ -208,14 +208,14 @@ SOFTWARE.
  * inline function to send 8 bit command to the display
  * User need not call it
  */
-__attribute__((always_inline)) static void write_command_8bit(uint8_t cmd)
+__attribute__((always_inline)) static inline void _st_write_command_8bit(uint8_t cmd)
 {
-	#ifdef RELEASE_WHEN_IDLE
+	#ifdef ST_RELEASE_WHEN_IDLE
 		CS_ACTIVE;
 	#endif
-	DC_CMD;
-	WRITE_8BIT(cmd);
-	#ifdef RELEASE_WHEN_IDLE
+	ST_DC_CMD;
+	ST_WRITE_8BIT(cmd);
+	#ifdef ST_RELEASE_WHEN_IDLE
 		CS_IDLE;
 	#endif
 }
@@ -224,14 +224,14 @@ __attribute__((always_inline)) static void write_command_8bit(uint8_t cmd)
  * inline function to send 8 bit data to the display
  * User need not call it
  */
-__attribute__((always_inline)) static void write_data_8bit(uint8_t dat)
+__attribute__((always_inline)) static inline void _st_write_data_8bit(uint8_t dat)
 {
-	#ifdef RELEASE_WHEN_IDLE
+	#ifdef ST_RELEASE_WHEN_IDLE
 		CS_ACTIVE;
 	#endif
-	DC_DAT;
-	WRITE_8BIT(dat);
-	#ifdef RELEASE_WHEN_IDLE
+	ST_DC_DAT;
+	ST_WRITE_8BIT(dat);
+	#ifdef ST_RELEASE_WHEN_IDLE
 		CS_IDLE;
 	#endif
 }
@@ -240,15 +240,15 @@ __attribute__((always_inline)) static void write_data_8bit(uint8_t dat)
  * inline function to send 16 bit data to the display
  * User need not call it
  */
-__attribute__((always_inline)) static void write_data_16bit(uint16_t dat)
+__attribute__((always_inline)) static inline void _st_write_data_16bit(uint16_t dat)
 {
-	#ifdef RELEASE_WHEN_IDLE
+	#ifdef ST_RELEASE_WHEN_IDLE
 		CS_ACTIVE;
 	#endif
-	DC_DAT;
-	WRITE_8BIT((uint8_t)(dat >> 8));
-	WRITE_8BIT((uint8_t)dat);
-	#ifdef RELEASE_WHEN_IDLE
+	ST_DC_DAT;
+	ST_WRITE_8BIT((uint8_t)(dat >> 8));
+	ST_WRITE_8BIT((uint8_t)dat);
+	#ifdef ST_RELEASE_WHEN_IDLE
 		CS_IDLE;
 	#endif
 }
@@ -261,7 +261,7 @@ __attribute__((always_inline)) static void write_data_16bit(uint16_t dat)
  * fixed delay of 5000 NOPs + time due to looping.
  * Used for sendinf start sequence
  */
-void st_fixed_delay();
+void _st_fixed_delay();
 
 /**
  * Set an area for drawing on the display with start row,col and end row,col.
@@ -306,25 +306,25 @@ void st_draw_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t 
  * Called by st_draw_line().
  * User need not call it
  */
-void plot_line_low(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color);
+void _st_plot_line_low(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color);
 
 /*
  * Called by st_draw_line().
  * User need not call it
  */
-void plot_line_high(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color);
+void _st_plot_line_high(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t width, uint16_t color);
 
 /*
  * Called by st_draw_line().
  * User need not call it
  */
-void st_draw_fast_h_line(uint16_t x0, uint16_t y0, uint16_t x1, uint8_t width, uint16_t color);
+void _st_draw_fast_h_line(uint16_t x0, uint16_t y0, uint16_t x1, uint8_t width, uint16_t color);
 
 /*
  * Called by st_draw_line().
  * User need not call it
  */
-void st_draw_fast_v_line(uint16_t x0, uint16_t y0, uint16_t y1, uint8_t width, uint16_t color);
+void _st_draw_fast_v_line(uint16_t x0, uint16_t y0, uint16_t y1, uint8_t width, uint16_t color);
 
 /**
  * Rotate the display clockwise or anti-clockwie set by `rotation`
@@ -363,7 +363,7 @@ void st_fill_screen(uint16_t color);
  * Render a character glyph on the display. Called by `st_draw_string_main()`
  * User need NOT call it
  */
-void st_draw_char(uint16_t x, uint16_t y, uint16_t fore_color, uint16_t back_color, const tImage *glyph, uint8_t is_bg);
+void _st_render_glyph(uint16_t x, uint16_t y, uint16_t fore_color, uint16_t back_color, const tImage *glyph, uint8_t is_bg);
 
 /**
  * Renders a string by drawing each character glyph from the passed string.
@@ -373,7 +373,19 @@ void st_draw_char(uint16_t x, uint16_t y, uint16_t fore_color, uint16_t back_col
  * is_bg=1 : Text will habe background color,   is_bg=0 : Text will have transparent background
  * User need NOT call it.
  */
-void st_draw_string_main(uint16_t x, uint16_t y, char *str, uint16_t fore_color, uint16_t back_color, const tFont *font, uint8_t is_bg);
+void _st_draw_string_main(uint16_t x, uint16_t y, char *str, uint16_t fore_color, uint16_t back_color, const tFont *font, uint8_t is_bg);
+
+/**
+ * Draws a character at a given position, fore color, back color.
+ * @param x Start col address
+ * @param y Start row address
+ * @param character the ASCII character to be drawn
+ * @param fore_color foreground color
+ * @param back_color background color
+ * @param font Pointer to the font of the character
+ * @param is_bg Defines if character has background or not (transparent)
+ */
+void st_draw_char(uint16_t x, uint16_t y, char character, uint16_t fore_color, uint16_t back_color, const tFont *font, uint8_t is_bg);
 
 /**
  * Draws a string on the display with `font` and `color` at given position.
