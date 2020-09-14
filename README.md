@@ -60,7 +60,7 @@ All configuration options are in the [header file](st7789_stm32_spi.h).
 - Same is applicable for changing SPI bus.
 
 #### DMA Settings
-- uncomment `#define ST_USE_SPI_DMA` to disable DMA based SPI write
+- Comment out `#define ST_USE_SPI_DMA` to disable DMA based SPI write
 - If you change SPI bus, also change DMA number (`#define ST_DMA`) and DMA channel number (`#define ST_DMA_CHANNEL`)
 
 ### Example

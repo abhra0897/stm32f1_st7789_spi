@@ -68,7 +68,7 @@ int main(void)
 	systick_counter_enable();
 
 	//----------------------------------------------------------
-	//initializing the ili9341 display driver
+	//initializing the st7789 display driver
 	st_init();	
 
 	/*To fill a specific area multiple times superfast, first set the area then fill it.*/
@@ -80,7 +80,7 @@ int main(void)
 	// Now fill the area many times quickly
 	for (uint16_t i = 0; i < 240; i++)
 	{
-		st_fill_color(ST_COLOR_GREEN + i, len);
+		st_fill_color(ST_COLOR_MAROON + i, len);
 	}
 
 	uint64_t time_end = systick_count;
