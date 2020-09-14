@@ -55,11 +55,22 @@ All configuration options are in the [header file](st7789_stm32_spi.h).
 - Here `SPI1` is used, but can be changed from the header.
 - Compiling with `-O1` flag gives almost twice as speed. But may reduce stability slightly. `-O0` flag is the most stable one and other optimization levels don't work.
 
+#### RCC Peripheral Clock Settings
+- If you change GPIOs, change inside `#define ST_CONFIG_GPIO_CLOCK()` too.
+- Same is applicable for changing SPI bus.
+
+#### DMA Settings
+- uncomment `#define ST_USE_SPI_DMA` to disable DMA based SPI write
+- If you change SPI bus, also change DMA number (`#define ST_DMA`) and DMA channel number (`#define ST_DMA_CHANNEL`)
+
 ### Example
 Example code (**[main.c](example/main.c)**) is in **[example](example)** directory. To compile using the provided [Makefile](example/Makefile), keep the directory structure as it is. If you change the directory structure, edit the SRCS, INCLS, and LIBS in the Makefile accordingly.
 Example is compiled and tested on STM32F103 (overclocked to 80MHz).
 
 ![Output of example code](example/photo/example_output.gif)
+
+### Speed Test
+Code for testing fps is [here](fps_test/fps_test.c). Compiling with different optimization flag and/or overclocking the MCU may give different FPS.
 
 ### Making Fonts
 To know how to make more fonts as per your need, check my [fonts_embedded](https://github.com/abhra0897/fonts_embedded.git) repository.
@@ -195,7 +206,9 @@ void st_draw_pixel(uint16_t x, uint16_t y, uint16_t color);
  - [x] Add example code(s) and write some docs
  - [x] Write better comments
  - [x] Explain how to create fonts
- - [ ] Add DMA transfer capability
+ - [x] Add DMA transfer capability
+ - [ ] Add a few more DMA based functions
+ - [ ] Explain how to create bitmap image
 
 ### License
 **[libopencm3](libopencm3)** and any derivative of the same are licensed under the terms of the GNU Lesser General Public License (LGPL), version 3 or later. The binaries generated after compilation will also be licensed under the same. See [this](libopencm3/COPYING.LGPL3) and [this](libopencm3/COPYING.GPL3) for the LGPL3 and GPL3 licenses.
