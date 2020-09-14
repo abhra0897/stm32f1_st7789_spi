@@ -23,7 +23,7 @@ SOFTWARE.
 */
 
 #include "st7789_stm32_spi.h"
-
+#define ST_BUFFER_SIZE_BYTES	256
 //TFT width and height default global variables
 uint16_t st_tftwidth = 240;
 uint16_t st_tftheight = 240;
@@ -283,43 +283,43 @@ void st_draw_string_withbg(uint16_t x, uint16_t y, char *str, uint16_t fore_colo
  * @param y Start row address
  * @param bitmap Pointer to the image data to be drawn
  */
-// void st_draw_bitmap_old(uint16_t x, uint16_t y, const tImage16bit *bitmap)
-// {
-// 	uint16_t width = 0, height = 0;
-// 	width = bitmap->width;
-// 	height = bitmap->height;
-
-// 	uint16_t total_pixels = width * height;
-
-// 	st_set_address_window(x, y, x + width-1, y + height-1);
-
-// 	ST_DC_DAT;
-// 	for (uint16_t pixels = 0; pixels < total_pixels; pixels++)
-// 	{
-// 		ST_WRITE_8BIT((uint8_t)(bitmap->data[pixels] >> 8));
-// 		ST_WRITE_8BIT((uint8_t)bitmap->data[pixels]);
-// 	}
-// }
 
 void st_draw_bitmap(uint16_t x, uint16_t y, const tImage *bitmap)
 {
 	uint16_t width = 0, height = 0;
 	width = bitmap->width;
 	height = bitmap->height;
-
-	uint16_t total_pixels = width * height;
-
 	st_set_address_window(x, y, x + width-1, y + height-1);
 
 	#ifdef ST_RELEASE_WHEN_IDLE
 		ST_CS_ACTIVE;
 	#endif
 	ST_DC_DAT;
-	for (uint16_t pixels = 0; pixels < total_pixels; pixels++)
-	{
-		ST_WRITE_8BIT((uint8_t)(bitmap->data[2*pixels]));
-		ST_WRITE_8BIT((uint8_t)(bitmap->data[2*pixels + 1]));
-	}
+
+	#ifdef ST_USE_SPI_DMA
+		uint32_t bytes_to_write = width * height * 2;
+		uint16_t transfer_size = ST_BUFFER_SIZE_BYTES;
+		uint32_t src_start_address = 0;
+
+		while (bytes_to_write)
+		{
+			transfer_size = (bytes_to_write < transfer_size) ? bytes_to_write : transfer_size;
+			_st_write_spi_dma((void *)(&bitmap->data[src_start_address]), transfer_size);
+			src_start_address += ST_BUFFER_SIZE_BYTES;
+			bytes_to_write -= transfer_size;
+		}
+		
+	#else
+
+		uint32_t total_pixels = width * height;
+		for (uint16_t pixels = 0; pixels < total_pixels; pixels++)
+		{
+			ST_WRITE_8BIT((uint8_t)(bitmap->data[2*pixels]));
+			ST_WRITE_8BIT((uint8_t)(bitmap->data[2*pixels + 1]));
+		}
+
+	#endif
+
 	#ifdef ST_RELEASE_WHEN_IDLE
 		CS_IDLE;
 	#endif
@@ -332,39 +332,63 @@ void st_draw_bitmap(uint16_t x, uint16_t y, const tImage *bitmap)
  * @param color 16-bit RGB565 color value
  * @param len 32-bit number of pixels
  */
+
 void st_fill_color(uint16_t color, uint32_t len)
 {
-	/*
-	* Here, macros are directly called (instead of inline functions) for performance increase
-	*/
-	uint16_t blocks = (uint16_t)(len / 64); // 64 pixels/block
-	uint8_t  pass_count;
-	uint8_t color_high = color >> 8;
-	uint8_t color_low = color;
-
 	#ifdef ST_RELEASE_WHEN_IDLE
 		ST_CS_ACTIVE;
 	#endif
 	ST_DC_DAT;
-	// Write first pixel
-	ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low);
-	len--;
+	uint8_t color_high = color >> 8;
+	uint8_t color_low = color;
 
-	while(blocks--)
-	{
-		pass_count = 16;
-		while(pass_count--)
+	#ifdef ST_USE_SPI_DMA		
+		uint8_t disp_buffer[ST_BUFFER_SIZE_BYTES];
+		for (uint16_t i = 0; i < ST_BUFFER_SIZE_BYTES; i = i+2)
 		{
-			ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low); 	ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low); //2
-			ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low); 	ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low); //4
+			disp_buffer[i] = color_high;
+			disp_buffer[i + 1] = color_low;
 		}
-	}
-	pass_count = len & 63;
-	while (pass_count--)
-	{
-		// write here the remaining data
+
+		// len is pixel count. But each pixel is 2 bytes. So, multiply by 2
+		uint32_t bytes_to_write = len * 2;
+		uint16_t transfer_size = ST_BUFFER_SIZE_BYTES;
+		while (bytes_to_write)
+		{
+			transfer_size = (bytes_to_write < transfer_size) ? bytes_to_write : transfer_size;
+			_st_write_spi_dma(disp_buffer, transfer_size);
+			bytes_to_write -= transfer_size;
+		}
+
+	#else
+		/*
+		* Here, macros are directly called (instead of inline functions) for performance increase
+		*/
+		uint16_t blocks = (uint16_t)(len / 64); // 64 pixels/block
+		uint8_t  pass_count;
+
+		// Write first pixel
 		ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low);
-	}
+		len--;
+
+		while(blocks--)
+		{
+			pass_count = 16;
+			while(pass_count--)
+			{
+				ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low); 	ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low); //2
+				ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low); 	ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low); //4
+			}
+		}
+		pass_count = len & 63;
+		while (pass_count--)
+		{
+			// write here the remaining data
+			ST_WRITE_8BIT(color_high); ST_WRITE_8BIT(color_low);
+		}
+		
+	#endif
+
 	#ifdef ST_RELEASE_WHEN_IDLE
 		CS_IDLE;
 	#endif
@@ -694,6 +718,10 @@ void st_init()
 	ST_CONFIG_GPIO_CLOCK();
 	// Configure gpio output dir and mode
 	ST_CONFIG_GPIO();
+	// If using DMA, config SPI DMA
+	#ifdef ST_USE_SPI_DMA
+		ST_CONFIG_SPI_DMA();
+	#endif
 	// Configure SPI settings
 	ST_CONFIG_SPI();
 

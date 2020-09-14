@@ -27,6 +27,7 @@ SOFTWARE.
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/spi.h>
 #include <libopencm3/stm32/rcc.h>
+#include <libopencm3/stm32/dma.h>
 #include <stdlib.h>
 
 #ifndef INC_ST7789_STM32_SPI_H_
@@ -93,25 +94,25 @@ SOFTWARE.
 	((uint16_t)(G >> 2) << ST_G_POS_RGB) | \
 	((uint16_t)(B >> 3) << ST_B_POS_RGB))
 
-#define COLOR_BLACK       ST_RGB(0,     0,   0)
-#define COLOR_NAVY        ST_RGB(0,     0, 123)
-#define COLOR_DARKGREEN   ST_RGB(0,   125,   0)
-#define COLOR_DARKCYAN    ST_RGB(0,   125, 123)
-#define COLOR_MAROON      ST_RGB(123,   0,   0)
-#define COLOR_PURPLE      ST_RGB(123,   0, 123)
-#define COLOR_OLIVE       ST_RGB(123, 125,   0)
-#define COLOR_LIGHTGREY   ST_RGB(198, 195, 198)
-#define COLOR_DARKGREY    ST_RGB(123, 125, 123)
-#define COLOR_BLUE        ST_RGB(0,     0, 255)
-#define COLOR_GREEN       ST_RGB(0,   255,   0)
-#define COLOR_CYAN        ST_RGB(0,   255, 255)
-#define COLOR_RED         ST_RGB(255,   0,   0)
-#define COLOR_MAGENTA     ST_RGB(255,   0, 255)
-#define COLOR_YELLOW      ST_RGB(255, 255,   0)
-#define COLOR_WHITE       ST_RGB(255, 255, 255)
-#define COLOR_ORANGE      ST_RGB(255, 165,   0)
-#define COLOR_GREENYELLOW ST_RGB(173, 255,  41)
-#define COLOR_PINK        ST_RGB(255, 130, 198)
+#define ST_COLOR_BLACK       ST_RGB(0,     0,   0)
+#define ST_COLOR_NAVY        ST_RGB(0,     0, 123)
+#define ST_COLOR_DARKGREEN   ST_RGB(0,   125,   0)
+#define ST_COLOR_DARKCYAN    ST_RGB(0,   125, 123)
+#define ST_COLOR_MAROON      ST_RGB(123,   0,   0)
+#define ST_COLOR_PURPLE      ST_RGB(123,   0, 123)
+#define ST_COLOR_OLIVE       ST_RGB(123, 125,   0)
+#define ST_COLOR_LIGHTGREY   ST_RGB(198, 195, 198)
+#define ST_COLOR_DARKGREY    ST_RGB(123, 125, 123)
+#define ST_COLOR_BLUE        ST_RGB(0,     0, 255)
+#define ST_COLOR_GREEN       ST_RGB(0,   255,   0)
+#define ST_COLOR_CYAN        ST_RGB(0,   255, 255)
+#define ST_COLOR_RED         ST_RGB(255,   0,   0)
+#define ST_COLOR_MAGENTA     ST_RGB(255,   0, 255)
+#define ST_COLOR_YELLOW      ST_RGB(255, 255,   0)
+#define ST_COLOR_WHITE       ST_RGB(255, 255, 255)
+#define ST_COLOR_ORANGE      ST_RGB(255, 165,   0)
+#define ST_COLOR_GREENYELLOW ST_RGB(173, 255,  41)
+#define ST_COLOR_PINK        ST_RGB(255, 130, 198)
 
 
 /**
@@ -125,13 +126,19 @@ SOFTWARE.
  * BLK					PA3
  */
 
+#define ST_USE_SPI_DMA
 #define ST_HAS_RST
-#define ST_HAS_CS
+//#define ST_HAS_CS
 #ifdef ST_HAS_CS
 //	#define ST_RELEASE_WHEN_IDLE
 #endif
 
 #define ST_SPI			SPI1
+#ifdef ST_USE_SPI_DMA
+	#define ST_DMA			DMA1
+	#define ST_DMA_CHANNEL	3
+#endif
+
 #define ST_PORT			GPIOA
 
 #define ST_RST			GPIO4
@@ -152,13 +159,14 @@ SOFTWARE.
 	#define ST_CS_IDLE			GPIO_BSRR(ST_PORT) = ST_CS
 #endif
 
-#define ST_CONFIG_GPIO_CLOCK()	    { \
+#define ST_CONFIG_GPIO_CLOCK()	{ \
 									rcc_periph_clock_enable(RCC_GPIOA); \
 									rcc_periph_clock_enable(RCC_AFIO); \
 									rcc_periph_clock_enable(RCC_SPI1); \
+									rcc_periph_clock_enable(RCC_DMA1); \
 								}
 #ifdef ST_HAS_CS
-	#define ST_CONFIG_GPIO()			{ \
+	#define ST_CONFIG_GPIO()		{ \
 										/*Configure GPIO pins : PA2 PA3 PA4 PA5 PA7 */ \
 										gpio_set_mode(ST_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, ST_SCL|ST_SDA); \
 										gpio_set_mode(ST_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, ST_DC|ST_BLK|ST_RST|ST_CS); \
@@ -168,7 +176,7 @@ SOFTWARE.
 										AFIO_MAPR |= AFIO_MAPR_SWJ_CFG_FULL_SWJ_NO_JNTRST; \
 									}
 #else
-	#define ST_CONFIG_GPIO()			{ \
+	#define ST_CONFIG_GPIO()		{ \
 										/*Configure GPIO pins : PA2 PA3 PA4 PA5 PA7 */ \
 										gpio_set_mode(ST_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, ST_SCL|ST_SDA); \
 										gpio_set_mode(ST_PORT, GPIO_MODE_OUTPUT_50_MHZ, GPIO_CNF_OUTPUT_PUSHPULL, ST_DC|ST_BLK|ST_RST); \
@@ -182,10 +190,12 @@ SOFTWARE.
 #define ST_CONFIG_SPI()			{ \
 									/* Reset SPI, SPI_CR1 register cleared, SPI is disabled */ \
 									spi_reset(ST_SPI); \
+									SPI_I2SCFGR(ST_SPI) = 0; \
 									/* Must use SPI_MODE = 2. (CPOL 1, CPHA 0) */\
 									/* Read about SPI MODEs: https://en.wikipedia.org/wiki/Serial_Peripheral_Interface*/ \
 									spi_init_master(ST_SPI, SPI_CR1_BAUDRATE_FPCLK_DIV_2, SPI_CR1_CPOL_CLK_TO_1_WHEN_IDLE, SPI_CR1_CPHA_CLK_TRANSITION_1, SPI_CR1_DFF_8BIT, SPI_CR1_MSBFIRST); \
 									spi_enable_software_slave_management(ST_SPI); \
+									spi_set_full_duplex_mode(ST_SPI); \
 									spi_set_nss_high(ST_SPI); \
 									/* Enable SPI1 periph. */ \
 									spi_enable(ST_SPI); \
@@ -198,11 +208,67 @@ SOFTWARE.
 // Important: using `while (!(SPI_SR(ST_SPI) & SPI_SR_TXE));` is
 // making the transmission unstable. So, replaced it with 
 // `while (SPI_SR(ST_SPI) & SPI_SR_BSY);`
+
+// Use nop to get higher fps. add more nops if display is not working properly
+// Remove nops if fps is too low. 
+// Rule of thumb: If optimization flag value is set to higher, and/or MCU is overclocked, then increase nops
 #define ST_WRITE_8BIT(d)	do{ \
 							SPI_DR(ST_SPI) = (uint8_t)(d); \
-							while (SPI_SR(ST_SPI) & SPI_SR_BSY); \
+							/*while (SPI_SR(ST_SPI) & SPI_SR_BSY);*/ \
+							__asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop"); \
+							__asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop"); \
+							__asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop"); \
+							__asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop"); \
+							__asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop"); \
 						} while(0)
 
+#ifdef ST_USE_SPI_DMA
+
+	#define ST_CONFIG_SPI_DMA()		{ \
+									/* DMA Peripheral address set to SPI*/ \
+									DMA_CPAR(ST_DMA, ST_DMA_CHANNEL) = (uint32_t)&SPI_DR(ST_SPI); \
+									/* Dma memory address is reset */ \
+									DMA_CMAR(ST_DMA, ST_DMA_CHANNEL) = 0; \
+									/* Number of data transfer is reset */ \
+									DMA_CNDTR(ST_DMA, ST_DMA_CHANNEL) = 0; \
+									/* DMA priority is high */ \
+									DMA_CCR(ST_DMA, ST_DMA_CHANNEL) = DMA_CCR_PL_HIGH; \
+									/* Data transfer direction: Read from memory */ \
+									DMA_CCR(ST_DMA, ST_DMA_CHANNEL) |= DMA_CCR_DIR; \
+									/* Disable circular DMA */ \
+									DMA_CCR(ST_DMA, ST_DMA_CHANNEL) &= ~DMA_CCR_CIRC; \
+									/* peripheral increment disabled */\
+									DMA_CCR(ST_DMA, ST_DMA_CHANNEL) &= ~DMA_CCR_PINC; \
+									/* memory increment enabled */ \
+									DMA_CCR(ST_DMA, ST_DMA_CHANNEL) |= DMA_CCR_MINC; \
+									/* peripheral and memory data size set to 8 bit */ \
+									DMA_CCR(ST_DMA, ST_DMA_CHANNEL) |= DMA_CCR_PSIZE_8BIT | DMA_CCR_MSIZE_8BIT; \
+								}
+
+	
+	__attribute__((always_inline)) static inline void _st_write_spi_dma(void *data_addr, uint16_t length)
+	{
+		// Set memory source address
+		DMA_CMAR(ST_DMA, ST_DMA_CHANNEL) = (uint32_t)data_addr;
+		// set data count
+		DMA_CNDTR(ST_DMA, ST_DMA_CHANNEL) = length;
+
+		// Enable DMA channel 
+		DMA_CCR(ST_DMA, ST_DMA_CHANNEL) |= DMA_CCR_EN;
+		// Enable SPI DMA. This will start the DMA transaction
+		SPI_CR2(ST_SPI) |= SPI_CR2_TXDMAEN;
+
+		// wait until all data is sent (count becomes 0)
+		while (DMA_CNDTR(ST_DMA, ST_DMA_CHANNEL));
+		//while (SPI_SR(ST_SPI) & SPI_SR_BSY);
+	
+		// Disable SPI DMA tx
+		SPI_CR2(ST_SPI) &= ~SPI_CR2_TXDMAEN;
+		// Disable DMA channel
+		DMA_CCR(ST_DMA, ST_DMA_CHANNEL) &= ~DMA_CCR_EN;
+	}
+
+#endif
 
 /*
  * inline function to send 8 bit command to the display
