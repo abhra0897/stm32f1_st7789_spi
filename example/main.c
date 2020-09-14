@@ -28,6 +28,7 @@ SOFTWARE.
 //#include "font_microsoft_16.h"
 #include "font_ubuntu_mono_24.h"
 #include "st7789_stm32_spi.h"
+#include "img_flag.h"
 
 /**
  * Configure RCC registers for 8MHz HSE and 80MHz output.
@@ -55,42 +56,45 @@ int main(void)
 	//st_rotate_display(0);
 
 	// Fiiling the entire screen with cyan color
-	st_fill_screen(COLOR_CYAN);
+	st_fill_screen(ST_COLOR_CYAN);
 
 	// Fill a rectangle with green yellow
-	st_fill_rect(20, 0, 80, 80, COLOR_PINK);
+	st_fill_rect(20, 0, 80, 80, ST_COLOR_PINK);
 
 	// Draw a rectangle
-	st_draw_rectangle(5, 160, 50, 50, COLOR_BLACK);
+	st_draw_rectangle(5, 160, 50, 50, ST_COLOR_BLACK);
 
 	// Write a string with transparent background at (0, 0) position with font `font_microsoft_16`
 	st_draw_string(0, 0, "Hello world", 0, &font_ubuntu_mono_24);
 
 	// Write a few characters at different positions
 	for (int i = 0; i < 10; i++)
-		st_draw_char(rand() % 100 + 5, rand() % 100 + 60, (char)(rand() % 50 + 90), COLOR_RED, 0, &font_ubuntu_mono_24, 0);
+		st_draw_char(rand() % 100 + 5, rand() % 100 + 60, (char)(rand() % 50 + 90), ST_COLOR_RED, 0, &font_ubuntu_mono_24, 0);
 
 	// Write a string with solid background. Text color white, background color dark green
-	st_draw_string_withbg(10, 40, "Hello Solid World", COLOR_WHITE, COLOR_DARKGREEN, &font_ubuntu_mono_24);
+	st_draw_string_withbg(10, 40, "Hello Solid World", ST_COLOR_WHITE, ST_COLOR_DARKGREEN, &font_ubuntu_mono_24);
 
 	// Draw a line between any two points
-	st_draw_line(4, 18, 200, 150, 1, COLOR_RED);
+	st_draw_line(4, 18, 200, 150, 1, ST_COLOR_RED);
 
 	// Draw a "thicc" line
-	st_draw_line(180, 2, 20, 220, 5, COLOR_BLUE);
+	st_draw_line(180, 2, 20, 220, 5, ST_COLOR_BLUE);
 	
 	// Draw some individual pixels in random points
 	for (int i = 0; i < 2000; i++)
-		st_draw_pixel(rand() % 100 + 120, rand() % 100 + 60, COLOR_WHITE + rand() % 100 + 60);
+		st_draw_pixel(rand() % 100 + 120, rand() % 100 + 60, ST_COLOR_WHITE + rand() % 100 + 60);
 
 	/*To fill a specific area multiple times superfast, first set the area then fill it.*/
 	// Set an area on the display to be drawn
 	st_set_address_window(50, 150, 150, 230);
 	// Now fill the area many times quickly
-	for (uint16_t i = 0; i < 300; i++)
-		st_fill_color(COLOR_MAROON + i, (100+1) * (150+1));
+	for (uint16_t i = 0; i < 700; i++)
+		st_fill_color(ST_COLOR_MAROON + i, (100+1) * (150+1));
 
-
+	// Fill the screen with black
+	st_fill_screen(ST_COLOR_BLACK);
+	// Draw a bitmap image (232 * 216)
+	st_draw_bitmap(4, 12, &img_flag);
 
 	return 0;
 }
