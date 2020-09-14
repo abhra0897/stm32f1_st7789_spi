@@ -205,15 +205,16 @@ SOFTWARE.
 #define ST_SWAP(a, b)		{uint16_t temp; temp = a; a = b; b = temp;}
 
 
-// Important: using `while (!(SPI_SR(ST_SPI) & SPI_SR_TXE));` is
-// making the transmission unstable. So, replaced it with 
-// `while (SPI_SR(ST_SPI) & SPI_SR_BSY);`
-
-// Use nop to get higher fps. add more nops if display is not working properly
+// Either use TXE and BSY flag check to ensure transaction completes, 
+// or use nops to get higher fps. Add more nops if display is not working properly
 // Remove nops if fps is too low. 
 // Rule of thumb: If optimization flag value is set to higher, and/or MCU is overclocked, then increase nops
+
+// Note: If display shows wrong output, either change number of nops as said above,
+//		 or uncomment TXE and BSY flag checks and comment out all nops.
 #define ST_WRITE_8BIT(d)	do{ \
 							SPI_DR(ST_SPI) = (uint8_t)(d); \
+							/*while (!(SPI_SR(ST_SPI) & SPI_SR_TXE));*/ \
 							/*while (SPI_SR(ST_SPI) & SPI_SR_BSY);*/ \
 							__asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop"); \
 							__asm__("nop"); __asm__("nop"); __asm__("nop"); __asm__("nop"); \
@@ -260,7 +261,10 @@ SOFTWARE.
 
 		// wait until all data is sent (count becomes 0)
 		while (DMA_CNDTR(ST_DMA, ST_DMA_CHANNEL));
-		//while (SPI_SR(ST_SPI) & SPI_SR_BSY);
+		// Wait until tx buffer is empty (not set)
+		while (!(SPI_SR(ST_SPI) & SPI_SR_TXE));
+		// Wait until bus is not busy
+		while (SPI_SR(ST_SPI) & SPI_SR_BSY);
 	
 		// Disable SPI DMA tx
 		SPI_CR2(ST_SPI) &= ~SPI_CR2_TXDMAEN;
