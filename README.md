@@ -15,7 +15,7 @@ git clone https://github.com/abhra0897/stm32f1_st7789_spi.git
 ```
 
 ### Wiring
-Connections between STM32F1 and ST7789 parallel display. **The display has no CS (Chip Select) pin**.
+Connections between STM32F1 and ST7789 serial display. **The display has no CS (Chip Select) pin**.
 <table border=1>
     <tr>
         <th colspan=1>ST7789</th>
@@ -49,9 +49,9 @@ Connections between STM32F1 and ST7789 parallel display. **The display has no CS
 
 ### Configuration
 All configuration options are in the [header file](st7789_stm32_spi.h). 
-- If display has no RESET pin, comment out `#define HAS_RST`.
-- To use CS pin, uncomment `#define HAS_CS`
-- If using CS and there's no other device connected in the same SPI bus, uncomment `#define RELEASE_WHEN_IDLE` to get a bit extra speed.
+- If display has no RESET pin, comment out `#define ST_HAS_RST`.
+- To use CS pin, uncomment `#define ST_HAS_CS`
+- If using CS and there's no other device connected in the same SPI bus, comment `#define ST_RELEASE_WHEN_IDLE` to get a bit extra speed.
 - Here `SPI1` is used, but can be changed from the header.
 - Compiling with `-O1` flag gives almost twice as speed. But may reduce stability slightly. `-O0` flag is the most stable one and other optimization levels don't work.
 
@@ -160,7 +160,7 @@ void st_draw_rectangle(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t 
  * @param font Pointer to the font of the character
  * @param is_bg Defines if character has background or not (transparent)
  */
-void st_draw_char(uint16_t x, uint16_t y, char character, uint16_t fore_color, uint16_t back_color, const tFont *font, uint8_t is_bg)
+void st_draw_char(uint16_t x, uint16_t y, char character, uint16_t fore_color, uint16_t back_color, const tFont *font, uint8_t is_bg);
 
 /**
  * Draws a string on the display with `font` and `color` at given position.

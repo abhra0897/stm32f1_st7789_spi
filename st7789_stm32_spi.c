@@ -321,7 +321,7 @@ void st_draw_bitmap(uint16_t x, uint16_t y, const tImage *bitmap)
 	#endif
 
 	#ifdef ST_RELEASE_WHEN_IDLE
-		CS_IDLE;
+		ST_CS_IDLE;
 	#endif
 }
 
@@ -390,7 +390,7 @@ void st_fill_color(uint16_t color, uint32_t len)
 	#endif
 
 	#ifdef ST_RELEASE_WHEN_IDLE
-		CS_IDLE;
+		ST_CS_IDLE;
 	#endif
 }
 
@@ -497,7 +497,7 @@ void _st_plot_line_low(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8
 			ST_WRITE_8BIT(color_low);
 		}
 		#ifdef ST_RELEASE_WHEN_IDLE
-			CS_IDLE;
+			ST_CS_IDLE;
 		#endif
 
 		if (D > 0)
@@ -549,7 +549,7 @@ void _st_plot_line_high(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint
 			ST_WRITE_8BIT(color_low);
 		}
 		#ifdef ST_RELEASE_WHEN_IDLE
-			CS_IDLE;
+			ST_CS_IDLE;
 		#endif
 
 		if (D > 0)
@@ -660,7 +660,7 @@ void st_draw_pixel(uint16_t x, uint16_t y, uint16_t color)
 	ST_WRITE_8BIT((uint8_t)(color >> 8));
 	ST_WRITE_8BIT((uint8_t)color);
 	#ifdef ST_RELEASE_WHEN_IDLE
-		CS_IDLE;
+		ST_CS_IDLE;
 	#endif
 }
 
